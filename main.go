@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"github.com/Aryan394/PortPassport"
+	"github.com/Aryan394/PortPassport/internal/port"
 )
 
 func main() {
@@ -35,7 +35,7 @@ func main() {
 		fmt.Println("Port:", result.Port)
 		fmt.Println("Protocol:", result.Protocol)
 		fmt.Println("Address:", result.Address)
-		fmt.Println("PID:", result.PID)
+		fmt.Println("PID:", result.PId)
 		fmt.Println("Process:", result.Process)
 		fmt.Println("User:", result.User)
 	}
