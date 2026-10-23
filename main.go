@@ -28,8 +28,13 @@ func main() {
 	}
 
 	portNumber, err := strconv.Atoi(portArg)
-	if err != nil || portNumber < 1 || portNumber > 65535 {
-		fmt.Println("Error: port must be between 1 and 65535")
+	if err != nil {
+		fmt.Println("Error: port must be a number")
+		os.Exit(1)
+	}
+
+	if err := port.ValidatePort(portNumber); err != nil {
+		fmt.Println("Error:", err)
 		os.Exit(1)
 	}
 
@@ -64,6 +69,7 @@ func main() {
 }
 
 func terminateProcess(results []port.PortInfo) {
+	inspector := port.NewInspector()
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("\nEnter the PID you want to terminate (0 to cancel): ")
 	input, err := reader.ReadString('\n')
@@ -107,8 +113,6 @@ func terminateProcess(results []port.PortInfo) {
 		return
 	}
 
-	inspector := port.NewInspector()
-
 	currentResults, err := inspector.Find(selected.Port)
 	if err != nil {
 		fmt.Println("Could not recheck the port:", err)
@@ -130,12 +134,30 @@ func terminateProcess(results []port.PortInfo) {
 		return
 	}
 
-	fmt.Printf("Termination request sent to PID %d.\n", pid)
-	fmt.Println("Run PortPassport again to check whether the port is free.")
+fmt.Printf("Termination request sent to PID %d.\n", pid)
+
+currentResults, err = inspector.Find(selected.Port)
+if err != nil {
+	fmt.Println("Could not verify port status:", err)
+	return
+}
+
+for _, result := range currentResults {
+	if result.PID == pid {
+		fmt.Printf("Process %d is still listening on port %d.\n", pid, selected.Port)
+		return
+	}
+}
+
+fmt.Printf("Process %d is no longer listening on port %d.\n", pid, selected.Port)
+
+if len(currentResults) == 0 {
+	fmt.Printf("Port %d is now free of TCP listeners.\n", selected.Port)
+} else {
+	fmt.Printf("Port %d is still in use by another process.\n", selected.Port)
+}
 	fmt.Printf("Termination signal sent to PID %d.\n", pid)
 	fmt.Println("Run PortPassport again to verify the port is free.")
-	fmt.Printf("Termination signal sent to PID %d.\n", pid)
-	fmt.Println("Run PortPassport again to check whether the port is free.")
 }
 
 func printUsage() {
