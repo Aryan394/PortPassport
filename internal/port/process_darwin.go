@@ -5,6 +5,7 @@ package port
 import (
 	"fmt"
 	"os"
+	"time"
 )
 
 func KillProcess(pid int) error {
@@ -19,4 +20,24 @@ func KillProcess(pid int) error {
 		return fmt.Errorf("terminate process %d: %w", pid, err)
 	}
 	return nil
+}
+
+func WaitForProcessExit(pid int, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+
+	for time.Now().Before(deadline) {
+		process, err := os.FindProcess(pid)
+		if err != nil {
+			return nil
+		}
+
+		err = process.Signal(os.Signal(nil))
+		if err != nil {
+			return nil
+		}
+
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	return fmt.Errorf("process %d may still be running", pid)
 }

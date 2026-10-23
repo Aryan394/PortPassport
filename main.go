@@ -10,6 +10,20 @@ import (
 )
 
 func main() {
+
+if len(os.Args) == 2 && os.Args[1] == "--list" {
+	inspector := port.NewInspector()
+
+	results, err := inspector.List()
+	if err != nil {
+		fmt.Println("Failed to list ports:", err)
+		os.Exit(1)
+	}
+
+	printPortResults(results)
+	return
+}
+
 	if len(os.Args) < 2 || len(os.Args) > 3 {
 		printUsage()
 		os.Exit(1)
@@ -164,4 +178,31 @@ func printUsage() {
 	fmt.Println("Usage:")
 	fmt.Println("  portpassport <port>")
 	fmt.Println("  portpassport --kill <port>")
+	fmt.Println("  portpassport --list")
+}
+
+func printPortResults(results []port.PortInfo) {
+	if len(results) == 0 {
+		fmt.Println("No active TCP listeners found.")
+		return
+	}
+
+	fmt.Println("PortPassport — Active TCP Listeners")
+	fmt.Println()
+
+	fmt.Printf("%-8s %-8s %-18s %-12s %-8s %s\n",
+		"PORT", "PID", "PROCESS", "USER", "PROTOCOL", "ADDRESS")
+
+	for _, result := range results {
+		fmt.Printf("%-8d %-8d %-18s %-12s %-8s %s\n",
+			result.Port,
+			result.PID,
+			result.Process,
+			result.User,
+			result.Protocol,
+			result.Address,
+		)
+	}
+
+	fmt.Printf("\n%d listener entries found.\n", len(results))
 }

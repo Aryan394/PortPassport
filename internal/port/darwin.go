@@ -8,25 +8,37 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"net"
 )
 
 type DarwinPortInspector struct{}
 
+
 func (d DarwinPortInspector) Find(port int) ([]PortInfo, error) {
-	if port < 1 || port > 65535 {
-		return nil, fmt.Errorf("invalid port: %d", port)
+	if err := ValidatePort(port); err != nil {
+		return nil, err
 	}
 
+	return d.inspect(fmt.Sprintf("-iTCP:%d", port))
+}
+
+func (d DarwinPortInspector) List() ([]PortInfo, error) {
+	return d.inspect("-iTCP")
+}
+
+func (d DarwinPortInspector) inspect(filter string) ([]PortInfo, error) {
 	cmd := exec.Command(
 		"lsof",
 		"-nP",
 		"-FpcLPTn",
-		fmt.Sprintf("-iTCP:%d", port),
+		filter,
 		"-sTCP:LISTEN",
 	)
+
 	output, err := cmd.Output()
 	if err != nil {
 		var exitErr *exec.ExitError
+
 		if errors.As(err, &exitErr) &&
 			exitErr.ExitCode() == 1 &&
 			len(output) == 0 &&
@@ -34,31 +46,14 @@ func (d DarwinPortInspector) Find(port int) ([]PortInfo, error) {
 			return []PortInfo{}, nil
 		}
 
-		return nil, fmt.Errorf("failed to inspect port: %w", err)
+		return nil, fmt.Errorf("failed to inspect ports: %w", err)
 	}
 
 	var results []PortInfo
-
 	var pid int
 	var process string
 	var user string
 	var protocol string
-	var address string
-
-	addResult := func() {
-		if pid == 0 || address == "" {
-			return
-		}
-
-		results = append(results, PortInfo{
-			Port:     port,
-			Protocol: protocol,
-			Address:  address,
-			PID:      pid,
-			Process:  process,
-			User:     user,
-		})
-	}
 
 	for _, line := range strings.Split(string(output), "\n") {
 		if len(line) < 2 {
@@ -70,13 +65,10 @@ func (d DarwinPortInspector) Find(port int) ([]PortInfo, error) {
 
 		switch field {
 		case 'p':
-			addResult()
-
 			pid, _ = strconv.Atoi(value)
 			process = ""
 			user = ""
 			protocol = ""
-			address = ""
 
 		case 'c':
 			process = value
@@ -88,13 +80,35 @@ func (d DarwinPortInspector) Find(port int) ([]PortInfo, error) {
 			protocol = value
 
 		case 'n':
-			address = value
-			addResult()
-			address = ""
+			if pid == 0 {
+				continue
+			}
+
+			results = append(results, PortInfo{
+				Port:     extractPort(value),
+				Protocol: protocol,
+				Address:  value,
+				PID:      pid,
+				Process:  process,
+				User:     user,
+			})
 		}
 	}
 
-	addResult()
-
 	return results, nil
+}
+
+
+func extractPort(address string) int {
+	_, portString, err := net.SplitHostPort(address)
+	if err != nil {
+		return 0
+	}
+
+	port, err := strconv.Atoi(portString)
+	if err != nil {
+		return 0
+	}
+
+	return port
 }

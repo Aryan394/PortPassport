@@ -10,5 +10,6 @@ type PortInfo struct {
 }
 
 type PortInspector interface {
-	Find(port int) ([]PortInfo, error)
+    Find(port int) ([]PortInfo, error)
+    List() ([]PortInfo, error)
 }
