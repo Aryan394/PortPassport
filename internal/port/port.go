@@ -4,7 +4,7 @@ type PortInfo struct{
 	Port int
 	Protocol string
 	Address string
-	PId int
+	PID int
 	Process string
 	User string
 }
