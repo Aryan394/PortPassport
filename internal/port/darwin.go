@@ -1,6 +1,7 @@
 //go:build darwin
 
 package port
+
 import (
 	"errors"
 	"fmt"

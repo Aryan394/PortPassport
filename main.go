@@ -3,10 +3,10 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/Aryan394/PortPassport/internal/port"
 	"os"
 	"strconv"
 	"strings"
-	"github.com/Aryan394/PortPassport/internal/port"
 )
 
 func main() {
@@ -107,17 +107,33 @@ func terminateProcess(results []port.PortInfo) {
 		return
 	}
 
-	process, err := os.FindProcess(pid)
+	inspector := port.NewInspector()
+
+	currentResults, err := inspector.Find(selected.Port)
 	if err != nil {
-		fmt.Println("Could not find process:", err)
+		fmt.Println("Could not recheck the port:", err)
 		return
 	}
-
-	if err := process.Kill(); err != nil {
+	stillListening := false
+	for _, result := range currentResults {
+		if result.PID == pid {
+			stillListening = true
+			break
+		}
+	}
+	if !stillListening {
+		fmt.Println("The process is no longer listed on this port. Cancelled.")
+		return
+	}
+	if err := port.KillProcess(pid); err != nil {
 		fmt.Println("Failed to terminate process:", err)
 		return
 	}
 
+	fmt.Printf("Termination request sent to PID %d.\n", pid)
+	fmt.Println("Run PortPassport again to check whether the port is free.")
+	fmt.Printf("Termination signal sent to PID %d.\n", pid)
+	fmt.Println("Run PortPassport again to verify the port is free.")
 	fmt.Printf("Termination signal sent to PID %d.\n", pid)
 	fmt.Println("Run PortPassport again to check whether the port is free.")
 }

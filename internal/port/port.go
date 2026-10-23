@@ -1,12 +1,12 @@
 package port
 
-type PortInfo struct{
-	Port int
+type PortInfo struct {
+	Port     int
 	Protocol string
-	Address string
-	PID int
-	Process string
-	User string
+	Address  string
+	PID      int
+	Process  string
+	User     string
 }
 
 type PortInspector interface {
